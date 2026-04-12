@@ -1,0 +1,32 @@
+import '../models/task.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+
+// ── Firestore version (Phase D) ───────────────────────────────
+Future<void> addTaskToFirestore(String title) async {
+  if (title.trim().isEmpty) return;  // Same validation rule
+
+  await FirebaseFirestore.instance.collection('tasks').add({
+    'title': title.trim(),
+    'isCompleted': false,
+    'subtasks': [],
+    'createdAt': DateTime.now().toIso8601String(),
+  });
+  // No setState() needed here — the stream will push the new doc
+}
+
+// Toggle isCompleted in Firestore
+Future<void> toggleTask(Task task) async {
+  await FirebaseFirestore.instance
+    .collection('tasks')
+    .doc(task.id)
+    .update({'isCompleted': !task.isCompleted});
+}
+
+// Permanently delete a task
+Future<void> deleteTask(String taskId) async {
+  await FirebaseFirestore.instance
+    .collection('tasks')
+    .doc(taskId)
+    .delete();
+}
