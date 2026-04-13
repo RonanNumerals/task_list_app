@@ -12,11 +12,13 @@ class TaskListScreen extends StatefulWidget {
 
 class _TaskListScreenState extends State<TaskListScreen> {
   final TextEditingController _taskController = TextEditingController();
-  List<Task> _tasks = [];
+  final TextEditingController _editController = TextEditingController();
+  //List<Task> _tasks = [];
 
   @override
   void dispose() {
     _taskController.dispose(); // IMPORTANT: always dispose controllers
+    _editController.dispose();
     super.dispose();
   }
 
@@ -103,10 +105,44 @@ class _TaskListScreenState extends State<TaskListScreen> {
                         value: task.isCompleted,
                         onChanged: (_) => toggleTask(task),
                       ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () => deleteTask(task.id),
-                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () {
+                              // Show a dialog to edit the task title
+                              showDialog(
+                                context: context,
+                                builder: (context) {
+                                  _editController.text = task.title;
+                                  return AlertDialog(
+                                    title: const Text('Edit Task'),
+                                    content: TextField(controller: _editController),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          updateTask(task.id, _editController.text.trim());
+                                          Navigator.pop(context);
+                                        },
+                                        child: const Text('Save'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => deleteTask(task.id),
+                          ),
+                        ]
+                      )
                     );
                   },
                 );
