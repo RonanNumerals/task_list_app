@@ -19,6 +19,14 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
   final TaskService taskService = TaskService();
 
+  bool isDarkMode = false;
+
+  void _toggleTheme() {
+    setState(() {
+      isDarkMode = !isDarkMode;
+    });
+  }
+
   @override
   void dispose() {
     _taskController.dispose();
@@ -39,89 +47,102 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Task Manager')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _taskController,
-                    decoration: const InputDecoration(
-                      hintText: 'New task name...',
+    return Theme(
+      data: isDarkMode ? ThemeData.dark() : ThemeData.light(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Task Manager'),
+          actions: [
+            IconButton(
+              onPressed: _toggleTheme,
+              icon: Icon(
+                isDarkMode ? Icons.light_mode : Icons.dark_mode,
+              ),
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _taskController,
+                      decoration: const InputDecoration(
+                        hintText: 'New task name...',
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () {
-                    taskService.addTaskToFirestore(
-                      _taskController.text.trim(),
-                    );
-                    _taskController.clear();
-                  },
-                  child: const Text('Add'),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      taskService.addTaskToFirestore(
+                        _taskController.text.trim(),
+                      );
+                      _taskController.clear();
+                    },
+                    child: const Text('Add'),
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('tasks')
-                  .orderBy('createdAt')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error: ${snapshot.error}'),
-                  );
-                }
-
-                final docs = snapshot.data?.docs ?? [];
-
-                if (docs.isEmpty) {
-                  return const Center(
-                    child: Text('No tasks yet. Add one above!'),
-                  );
-                }
-
-                final tasks = docs.map((doc) {
-                  return Task.fromMap(
-                    doc.id,
-                    doc.data() as Map<String, dynamic>,
-                  );
-                }).toList();
-
-                return ListView.builder(
-                  itemCount: tasks.length,
-                  itemBuilder: (context, index) {
-                    final task = tasks[index];
-
-                    return TaskTile(
-                      task: task,
-                      taskService: taskService,
-                      editController: _editController,
-                      subTaskController: _subTaskController,
-                      onShowSubtasks: () => _showSubtasks(task),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('tasks')
+                    .orderBy('createdAt')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
                     );
-                  },
-                );
-              },
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text('Error: ${snapshot.error}'),
+                    );
+                  }
+
+                  final docs = snapshot.data?.docs ?? [];
+
+                  if (docs.isEmpty) {
+                    return const Center(
+                      child: Text('No tasks yet. Add one above!'),
+                    );
+                  }
+
+                  final tasks = docs.map((doc) {
+                    return Task.fromMap(
+                      doc.id,
+                      doc.data() as Map<String, dynamic>,
+                    );
+                  }).toList();
+
+                  return ListView.builder(
+                    itemCount: tasks.length,
+                    itemBuilder: (context, index) {
+                      final task = tasks[index];
+
+                      return TaskTile(
+                        task: task,
+                        taskService: taskService,
+                        editController: _editController,
+                        subTaskController: _subTaskController,
+                        onShowSubtasks: () => _showSubtasks(task),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
