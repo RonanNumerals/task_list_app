@@ -60,12 +60,59 @@ class SubtaskDialog extends StatelessWidget {
                       taskService.toggleSubtask(task, sub);
                     },
                   ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () {
-                      taskService.deleteSubtask(task, sub);
-                    },
-                  ), 
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          final TextEditingController editController =
+                              TextEditingController(text: sub['title'] ?? '');
+
+                          showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text('Edit Subtask'),
+                              content: TextField(
+                                controller: editController,
+                                decoration: const InputDecoration(
+                                  hintText: 'Update subtask title...',
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Cancel'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    final newTitle = editController.text.trim();
+
+                                    if (newTitle.isNotEmpty) {
+                                      taskService.updateSubtask(
+                                        task,
+                                        sub,
+                                        newTitle,
+                                      );
+                                    }
+
+                                    Navigator.pop(context);
+                                  },
+                                  child: const Text('Save'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.edit_outlined),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () {
+                          taskService.deleteSubtask(task, sub);
+                        },
+                      ),
+                    ],
+                  ),
                 );
               }).toList(),
             );
