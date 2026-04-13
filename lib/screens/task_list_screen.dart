@@ -20,6 +20,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
     super.dispose();
   }
 
+  /*
   // ── Local state version (Phase C) ─────────────────────────────
   void _addTask() {
     final title = _taskController.text.trim();
@@ -43,6 +44,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
       }
     });
   }
+  */
 
   @override
   Widget build(BuildContext context) {
@@ -58,56 +60,58 @@ class _TaskListScreenState extends State<TaskListScreen> {
                 decoration: const InputDecoration(hintText: 'New task name...'),
               )),
               const SizedBox(width: 8),
-              ElevatedButton(onPressed: _addTask, child: const Text('Add')),
+              ElevatedButton(onPressed: () => addTaskToFirestore(_taskController.text.trim()), child: const Text('Add')),
             ]),
           ),
           // ── Task list ──────────────────────────────────────────
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-              .collection('tasks')
-              .orderBy('createdAt')
-              .snapshots(),
-            builder: (context, snapshot) {
-              // State 1: Still connecting to Firestore
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              // State 2: Stream returned an error
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
-              // State 3: Data arrived
-              final docs = snapshot.data?.docs ?? [];
-              // State 4: Collection is empty
-              if (docs.isEmpty) {
-                return const Center(child: Text('No tasks yet. Add one above!'));
-              }
-              return ListView.builder(
-                itemCount: docs.length,
-                itemBuilder: (context, index) {
-                  final task = Task.fromMap(
-                    docs[index].id,
-                    docs[index].data() as Map<String, dynamic>,
-                  );
-                  return ListTile(
-                    title: Text(
-                      task.title,
-                      style: TextStyle(
-                        decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                .collection('tasks')
+                .orderBy('createdAt')
+                .snapshots(),
+              builder: (context, snapshot) {
+                // State 1: Still connecting to Firestore
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                // State 2: Stream returned an error
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                // State 3: Data arrived
+                final docs = snapshot.data?.docs ?? [];
+                // State 4: Collection is empty
+                if (docs.isEmpty) {
+                  return const Center(child: Text('No tasks yet. Add one above!'));
+                }
+                return ListView.builder(
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final task = Task.fromMap(
+                      docs[index].id,
+                      docs[index].data() as Map<String, dynamic>,
+                    );
+                    return ListTile(
+                      title: Text(
+                        task.title,
+                        style: TextStyle(
+                          decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                        ),
                       ),
-                    ),
-                    leading: Checkbox(
-                      value: task.isCompleted,
-                      onChanged: (_) => toggleTask(task),
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () => deleteTask(task.id),
-                    ),
-                  );
-                },
-              );
-            },
+                      leading: Checkbox(
+                        value: task.isCompleted,
+                        onChanged: (_) => toggleTask(task),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => deleteTask(task.id),
+                      ),
+                    );
+                  },
+                );
+              },
+            )
           )
         ],
       ),

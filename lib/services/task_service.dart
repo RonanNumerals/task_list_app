@@ -1,5 +1,5 @@
-import '../models/task.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/task.dart';
 
 
 // ── Firestore version (Phase D) ───────────────────────────────
@@ -29,4 +29,25 @@ Future<void> deleteTask(String taskId) async {
     .collection('tasks')
     .doc(taskId)
     .delete();
+}
+
+Future<void> updateTask(String taskId, String newTitle) async {
+  if (newTitle.trim().isEmpty) return;
+
+  await FirebaseFirestore.instance
+    .collection('tasks')
+    .doc(taskId)
+    .update({'title': newTitle.trim()});
+}
+
+Future<void> addSubtaskToFirestore(String taskId, String subtaskTitle) async {
+  if (subtaskTitle.trim().isEmpty) return;
+
+  final taskRef = FirebaseFirestore.instance.collection('tasks').doc(taskId);
+  await taskRef.update({
+    'subtasks': FieldValue.arrayUnion([{
+      'title': subtaskTitle.trim(),
+      'isCompleted': false,
+    }])
+  });
 }
