@@ -12,12 +12,14 @@ class TaskListScreen extends StatefulWidget {
 
 class _TaskListScreenState extends State<TaskListScreen> {
   final TextEditingController _taskController = TextEditingController();
+  final TextEditingController _subTaskController = TextEditingController();
   final TextEditingController _editController = TextEditingController();
   //List<Task> _tasks = [];
 
   @override
   void dispose() {
     _taskController.dispose(); // IMPORTANT: always dispose controllers
+    _subTaskController.dispose();
     _editController.dispose();
     super.dispose();
   }
@@ -47,6 +49,108 @@ class _TaskListScreenState extends State<TaskListScreen> {
     });
   }
   */
+
+  Future<void> _showSubtasks(Task task) async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Subtasks for "${task.title}"'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('tasks')
+                  .doc(task.id)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const CircularProgressIndicator();
+                }
+                final data =
+                    snapshot.data!.data() as Map<String, dynamic>;
+                final subtasks = List<Map<String, dynamic>>.from(
+                  data['subtasks'] ?? [],
+                );
+                if (subtasks.isEmpty) {
+                  return const Text('No subtasks yet!');
+                }
+                return ListView(
+                  shrinkWrap: true,
+                  children: subtasks.map((sub) {
+                    return ListTile(
+                      title: Text(
+                        sub['title'] ?? '',
+                        style: TextStyle(
+                          decoration: sub['isCompleted'] == true
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+                      leading: Checkbox(
+                        value: sub['isCompleted'] ?? false,
+                        onChanged: (_) => toggleSubtask(task, sub),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) {
+                                  return AlertDialog(
+                                    title: const Text('Edit Subtask'),
+                                    content: TextField(
+                                      controller: _editController,
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          updateSubtask(
+                                            task,
+                                            sub,
+                                            _editController.text.trim(),
+                                          );
+                                          Navigator.pop(context);
+                                        },
+                                        child: const Text('Save'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () =>
+                                deleteSubtask(task, sub),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,6 +199,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                       docs[index].data() as Map<String, dynamic>,
                     );
                     return ListTile(
+                      onTap: () => _showSubtasks(task),
                       title: Text(
                         task.title,
                         style: TextStyle(
@@ -108,6 +213,34 @@ class _TaskListScreenState extends State<TaskListScreen> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) {
+                                  _subTaskController.text = task.title;
+                                  return AlertDialog(
+                                    title: const Text('Add Subtask'),
+                                    content: TextField(controller: _subTaskController),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          addSubtaskToFirestore(task.id, _subTaskController.text.trim());
+                                          Navigator.pop(context);
+                                        },
+                                        child: const Text('Save'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            }
+                          ),
                           IconButton(
                             icon: const Icon(Icons.edit_outlined),
                             onPressed: () {

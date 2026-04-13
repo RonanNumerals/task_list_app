@@ -51,3 +51,63 @@ Future<void> addSubtaskToFirestore(String taskId, String subtaskTitle) async {
     }])
   });
 }
+
+Future<void> toggleSubtask(Task task, Map<String, dynamic> subtask) async {
+  final docRef = FirebaseFirestore.instance
+      .collection('tasks')
+      .doc(task.id);
+
+  final snapshot = await docRef.get();
+
+  final data = snapshot.data() as Map<String, dynamic>;
+
+  final List subtasks = List.from(data['subtasks'] ?? []);
+
+  final updatedSubtasks = subtasks.map((item) {
+    if (item['title'] == subtask['title']) {
+      return {
+        ...item,
+        'isCompleted': !(item['isCompleted'] ?? false),
+      };
+    }
+    return item;
+  }).toList();
+
+  await docRef.update({
+    'subtasks': updatedSubtasks,
+  });
+}
+
+Future<void> deleteSubtask(Task task, Map<String, dynamic> subtask) async {
+  await FirebaseFirestore.instance
+    .collection('tasks')
+    .doc(task.id)
+    .update({
+      'subtasks': FieldValue.arrayRemove([subtask])
+    });
+}
+
+Future<void> updateSubtask(Task task, Map<String, dynamic> subtask, String newTitle) async {
+  if (newTitle.trim().isEmpty) return;
+
+  // Remove old subtask
+  await FirebaseFirestore.instance
+    .collection('tasks')
+    .doc(task.id)
+    .update({
+      'subtasks': FieldValue.arrayRemove([subtask])
+    });
+
+  // Add updated subtask
+  await FirebaseFirestore.instance
+    .collection('tasks')
+    .doc(task.id)
+    .update({
+      'subtasks': FieldValue.arrayUnion([
+        {
+          'title': newTitle.trim(),
+          'isCompleted': subtask['isCompleted'],
+        }
+      ])
+    });
+}
